@@ -19,6 +19,7 @@ export const useTreeOperations = () => {
         const currentNotes = [...notes];
 
         const draggedNotes = currentNotes.filter(note => dragIds.includes(note.id));
+
         const remainingNotes = currentNotes.filter(note => !dragIds.includes(note.id));
 
         // Group remaining notes by their parentId
@@ -30,10 +31,9 @@ export const useTreeOperations = () => {
             }
             notesByParent.get(key)!.push(note);
         });
-
         console.log("notesByParent:", notesByParent);
 
-        // Determine the target parent's children
+        // Determine Target Parent and Children
         const targetParentKey = parentId ?? null;
         let targetChildren = notesByParent.get(targetParentKey) || [];
 
@@ -47,13 +47,12 @@ export const useTreeOperations = () => {
                 adjustedIndex -= draggedNotes.length;
             }
         }
-
-        // Handle moves at the root level
+        // Handle Root Folder Moves = Adjust index
         if (parentNode === null) {
             if (dragNodes[0].data.parentId !== undefined) {
-                console.log("Dragged from a folder");
+                console.log("dragged from a folder");
             } else {
-                // Index of the dragged note in the root folder
+                //index of the dragged note
                 const firstDraggedIndex = currentNotes.findIndex(note => dragIds.includes(note.id));
                 if (firstDraggedIndex < index) {
                     // Moving downward in the root folder
@@ -65,7 +64,7 @@ export const useTreeOperations = () => {
         // Ensure the adjusted index is within valid bounds
         adjustedIndex = Math.max(0, Math.min(adjustedIndex, targetChildren.length));
 
-        // Update parentId for the dragged notes
+        // Update parentId of dragged notes
         draggedNotes.forEach(draggedNote => {
             draggedNote.parentId = parentId === null ? undefined : parentId;
         });
@@ -74,26 +73,24 @@ export const useTreeOperations = () => {
         targetChildren.splice(adjustedIndex, 0, ...draggedNotes);
         notesByParent.set(targetParentKey, targetChildren);
 
-        // Recalculate order for all children in each parent
+        // Recalculate order for each parent's children
         const reorderedNotes: noteType[] = [];
         notesByParent.forEach((children, parentKey) => {
             children.forEach((child, idx) => {
                 reorderedNotes.push({
                     ...child,
                     order: idx + 1,
-
                 });
             });
         });
 
         try {
             await db_Dexie.notes.bulkPut(reorderedNotes);
-            console.log("Notes moved and reordered successfully!");
+            //console.log("Notes moved and reordered successfully!");
         } catch (error) {
             console.error("Error updating the order of notes: ", error);
         }
     };
-
 
     const handleRename: RenameHandler<noteType> = async ({ name, id }) => {
         try {

@@ -5,7 +5,7 @@ import { db_Dexie } from "./tools/dbDexie";
 import { noteType } from "./tools/types";
 import { ChevronDown, ChevronRight, Plus } from "lucide-react";
 import { nanoid } from "nanoid";
-import { MouseEvent, useState } from "react";
+import { MouseEvent } from "react";
 
 function App() {
   const notes = useLiveQuery(() =>
