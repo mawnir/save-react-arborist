@@ -5,7 +5,6 @@ import { db_Dexie } from "./tools/dbDexie";
 import { noteType } from "./tools/types";
 import { ChevronDown, ChevronRight, Plus } from "lucide-react";
 import { nanoid } from "nanoid";
-import { MouseEvent } from "react";
 
 function App() {
   const notes = useLiveQuery(() =>
@@ -24,7 +23,7 @@ function App() {
 
   const treeData = mapToTree(notes || []);
 
-  const onCreate = async (e: MouseEvent<HTMLButtonElement>): Promise<void> => {
+  const onCreate = async (): Promise<void> => {
     const newNote: noteType = {
       id: nanoid(),
       parentId: "",

@@ -75,7 +75,7 @@ export const useTreeOperations = () => {
 
         // Recalculate order for each parent's children
         const reorderedNotes: noteType[] = [];
-        notesByParent.forEach((children, parentKey) => {
+        notesByParent.forEach((children) => {
             children.forEach((child, idx) => {
                 reorderedNotes.push({
                     ...child,
