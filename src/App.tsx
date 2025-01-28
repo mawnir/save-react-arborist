@@ -3,7 +3,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { mapToTree, useTreeOperations } from "./tools/useTreeOperations";
 import { db_Dexie } from "./tools/dbDexie";
 import { noteType } from "./tools/types";
-import { ChevronDown, ChevronRight, Plus } from "lucide-react";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import { nanoid } from "nanoid";
 
 function App() {
@@ -15,7 +15,7 @@ function App() {
       )
   );
 
-  const { handleMove, handleRename } = useTreeOperations();
+  const { handleMove, handleRename, handleDelete } = useTreeOperations();
 
   if (notes === undefined) {
     return <div>Loading...</div>;
@@ -44,43 +44,67 @@ function App() {
   };
 
   return (
-    <div className="w-full max-w-3xl mx-auto bg-white shadow-lg rounded-lg overflow-hidden">
-      <div className="p-6">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-gray-800">Save react-arborist Tree</h2>
-          <button
-            onClick={onCreate}
-            className="px-4 py-2 bg-amber-200 text-black rounded-md flex items-center"
-          >
-            <Plus className="mr-2 h-4 w-4" /> Create Note
-          </button>
-        </div>
-        <p className="text-black">enter to rename note</p>
-        <div className="border rounded-md overflow-hidden">
-          <Tree
-            data={treeData}
-            width="100%"
-            height={300}
-            renderCursor={Cursor}
-            onRename={handleRename}
-            onMove={handleMove}>
-            {Node}
-          </Tree>
-        </div>
-        <div className="mt-6 space-y-2 bg-gray-600 p-4 rounded">
-          <h3 className="font-semibold text-lg text-white">Flat Note Structure:</h3>
-          {notes.map((note) => (
-            <div key={note.id} className="text-sm bg-gray-50 p-2 rounded">
-              <span className="font-medium text-gray-800">{note.title}</span>
-              <span className="text-gray-500 ml-2">Order: {note.order}</span>
-              <span className="text-gray-500 ml-2">Parent: {note.parentId || "None"}</span>
-            </div>
-          ))}
-        </div>
+    <div className="w-full max-w-4xl mx-auto bg-white dark:bg-gray-800 shadow-xl rounded-lg overflow-hidden transition-all duration-300 ease-in-out p-6">
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-2xl font-bold text-gray-800 dark:text-white"> Tree Items</h2>
+        <button
+          onClick={onCreate}
+          className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-md flex items-center transition-colors duration-200"
+        >
+          <span className="mr-2">+</span> Create an item
+        </button>
       </div>
+      <div className="p-2 bg-amber-50">
+        <p className="text-gray-600 dark:text-gray-300">
+          Press <span className="font-bold">Enter</span> to rename, <span className="font-bold">Backspace</span> to delete.
+        </p>
+      </div>
+      <div className="border dark:border-gray-700 rounded-md overflow-hidden">
+        <Tree
+          data={treeData}
+          width="100%"
+          height={250}
+          renderCursor={Cursor}
+          onRename={handleRename}
+          onDelete={handleDelete}
+          onMove={handleMove}
+        >
+          {Node}
+        </Tree>
+      </div>
+      <FlatNoteStructure notes={notes || []} />
     </div>
   );
 }
+
+function FlatNoteStructure({ notes }: { notes: noteType[] }) {
+  return (
+    <div className=" mt-8 bg-muted p-6 rounded-lg overflow-x-auto">
+      <h3 className=" text-black font-semibold text-lg text-foreground mb-4">Tree Structure</h3>
+      <table className="w-full text-gray-700 border-collapse">
+        <thead>
+          <tr className="bg-muted-foreground/10">
+            <th className="p-2 text-left font-semibold text-foreground">Icon</th>
+            <th className="p-2 text-left font-semibold text-foreground">Title</th>
+            <th className="p-2 text-left font-semibold text-foreground">Order</th>
+            <th className="p-2 text-left font-semibold text-foreground">Parent</th>
+          </tr>
+        </thead>
+        <tbody>
+          {notes.map((note) => (
+            <tr key={note.id} className="border-t border-border">
+              <td className="p-2 text-foreground">{note.icon}</td>
+              <td className="p-2 text-foreground">{note.title}</td>
+              <td className="p-2 text-foreground">{note.order}</td>
+              <td className="p-2 text-foreground">{note.parentId || "None"}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
 
 function Node({ node, style, dragHandle }: NodeRendererProps<noteType>) {
   const isReceivingDrop = node.state.willReceiveDrop; // This is a boolean

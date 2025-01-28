@@ -2,7 +2,7 @@
 import { noteType } from './types';
 import Dexie, { type EntityTable } from 'dexie';
 
-const db_Dexie = new Dexie('NotesDB') as Dexie & {
+const db_Dexie = new Dexie('Arbo-NotesDB') as Dexie & {
     notes: EntityTable<noteType, 'id'>;
 };
 
