@@ -13,7 +13,7 @@ export const useTreeOperations = () => {
     }) => {
         const { dragIds, parentId, index, parentNode, dragNodes } = args;
 
-        console.log("dragNodes[0].data.parentId:", dragNodes[0].data.parentId);
+        //console.log("dragNodes[0].data.parentId:", dragNodes[0].data.parentId);
 
         const notes = await db_Dexie.notes.orderBy("order").toArray();
         const currentNotes = [...notes];
@@ -31,10 +31,10 @@ export const useTreeOperations = () => {
             }
             notesByParent.get(key)!.push(note);
         });
-        console.log("notesByParent:", notesByParent);
+        //console.log("notesByParent:", notesByParent);
 
         // Determine Target Parent and Children
-        const targetParentKey = parentId ?? null;
+        const targetParentKey = parentId ?? "";
         let targetChildren = notesByParent.get(targetParentKey) || [];
 
         let adjustedIndex = index;
@@ -49,7 +49,7 @@ export const useTreeOperations = () => {
         }
         // Handle Root Folder Moves = Adjust index
         if (parentNode === null) {
-            if (dragNodes[0].data.parentId !== undefined) {
+            if (dragNodes[0].data.parentId !== "") {
                 console.log("dragged from a folder");
             } else {
                 //index of the dragged note
@@ -66,7 +66,7 @@ export const useTreeOperations = () => {
 
         // Update parentId of dragged notes
         draggedNotes.forEach(draggedNote => {
-            draggedNote.parentId = parentId === null ? undefined : parentId;
+            draggedNote.parentId = parentId === null ? "" : parentId;
         });
 
         // Insert dragged notes into the target parent's children at the adjusted index
@@ -139,6 +139,9 @@ export const mapToTree = (notes: noteType[]): noteType[] => {
             tree.push(idMap[note.id]);
         }
     });
+
+    console.log("tree:", tree);
+
 
     return tree;
 };
