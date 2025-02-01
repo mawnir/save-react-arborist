@@ -4,93 +4,84 @@ import { MoveHandler, RenameHandler, DeleteHandler, NodeApi } from "react-arbori
 
 export const useTreeOperations = () => {
 
-    const handleMove: MoveHandler<noteType> = async (args: {
-        dragIds: string[];
-        dragNodes: NodeApi<noteType>[];
-        parentId: null | string;
-        parentNode: NodeApi<noteType> | null;
-        index: number;
+    const handleMove: MoveHandler<noteType> = async ({
+        dragIds,
+        dragNodes,
+        parentId,
+        parentNode,
+        index,
     }) => {
-        const { dragIds, parentId, index, parentNode, dragNodes } = args;
+        if (!dragIds.length) return;
 
-        //console.log("dragNodes[0].data.parentId:", dragNodes[0].data.parentId);
-
+        const dragIdSet = new Set(dragIds); // Improve lookup performance
         const notes = await db_Dexie.notes.orderBy("order").toArray();
-        const currentNotes = [...notes];
 
-        const draggedNotes = currentNotes.filter(note => dragIds.includes(note.id));
+        const draggedNotes = notes.filter(note => dragIdSet.has(note.id));
+        const remainingNotes = notes.filter(note => !dragIdSet.has(note.id));
 
-        const remainingNotes = currentNotes.filter(note => !dragIds.includes(note.id));
-
-        // Group remaining notes by their parentId
+        // Group remaining notes by parentId
         const notesByParent = new Map<string | null, noteType[]>();
         remainingNotes.forEach(note => {
-            const key = note.parentId ?? null;
-            if (!notesByParent.has(key)) {
+            const key = note.parentId ?? null; // Determine the parent key 
+            if (!notesByParent.has(key)) {  //Check if this parent already exists in the Map
                 notesByParent.set(key, []);
             }
-            notesByParent.get(key)!.push(note);
+            notesByParent.get(key)!.push(note); // Add the note to the parent
         });
-        //console.log("notesByParent:", notesByParent);
 
-        // Determine Target Parent and Children
-        const targetParentKey = parentId ?? "";
+        // Determine target parent and its children
+        const targetParentKey = parentId ?? ""; //If parentId is null ==> empty string ("").
         let targetChildren = notesByParent.get(targetParentKey) || [];
 
         let adjustedIndex = index;
 
         // Adjust index if moving within the same parent
-        if (draggedNotes.length > 0 && parentId === draggedNotes[0].parentId) {
-            const originalParentChildren = currentNotes.filter(n => n.parentId === parentId);
-            const firstDraggedIndexInParent = originalParentChildren.findIndex(n => dragIds.includes(n.id));
-            if (firstDraggedIndexInParent < index) {
-                adjustedIndex -= draggedNotes.length;
+        if (parentId === draggedNotes[0].parentId) {
+            const originalParentChildren = notes.filter(n => n.parentId === parentId); // all the notes in the same parent.
+            const firstDraggedIndex = originalParentChildren.findIndex(n => dragIdSet.has(n.id));// index of the first dragged note in the parent.
+            if (firstDraggedIndex < index) {
+                adjustedIndex -= draggedNotes.length; // If moving downward, adjust index
             }
         }
-        // Handle Root Folder Moves = Adjust index
-        if (parentNode === null) {
+
+        // Handle Root Folder Moves
+        if (!parentNode) {
             if (dragNodes[0].data.parentId !== "") {
-                console.log("dragged from a folder");
+                console.log("dragged from a folder"); // Dragged from a folder
             } else {
                 //index of the dragged note
-                const firstDraggedIndex = currentNotes.findIndex(note => dragIds.includes(note.id));
+                const firstDraggedIndex = notes.findIndex(note => dragIdSet.has(note.id));
                 if (firstDraggedIndex < index) {
-                    // Moving downward in the root folder
+                    // adjustedIndex Moving downward in the root folder
                     adjustedIndex -= draggedNotes.length;
                 }
             }
         }
 
-        // Ensure the adjusted index is within valid bounds
+        // Ensure index is within bounds
         adjustedIndex = Math.max(0, Math.min(adjustedIndex, targetChildren.length));
 
-        // Update parentId of dragged notes
-        draggedNotes.forEach(draggedNote => {
-            draggedNote.parentId = parentId === null ? "" : parentId;
-        });
+        // Update parentId for dragged notes
+        draggedNotes.forEach(note => (note.parentId = parentId ?? ""));
 
-        // Insert dragged notes into the target parent's children at the adjusted index
+        // Insert dragged notes at adjusted index
         targetChildren.splice(adjustedIndex, 0, ...draggedNotes);
+        // updates the notesByParent map by setting targetParentKey (the parent folder ID) to targetChildren (the newly updated)
         notesByParent.set(targetParentKey, targetChildren);
 
-        // Recalculate order for each parent's children
-        const reorderedNotes: noteType[] = [];
-        notesByParent.forEach((children) => {
-            children.forEach((child, idx) => {
-                reorderedNotes.push({
-                    ...child,
-                    order: idx + 1,
-                });
-            });
-        });
+        // Recalculate order and update DB
+        const reorderedNotes = [...notesByParent.values()].flat().map((note, idx) => ({
+            ...note,
+            order: idx + 1,
+        }));
 
         try {
             await db_Dexie.notes.bulkPut(reorderedNotes);
-            //console.log("Notes moved and reordered successfully!");
         } catch (error) {
-            console.error("Error updating the order of notes: ", error);
+            console.error("Failed to update notes order:", error);
         }
     };
+
 
     const handleRename: RenameHandler<noteType> = async ({ name, id }) => {
         try {
